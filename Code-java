@@ -1,0 +1,364 @@
+import java.util.Scanner;
+import java.util.Arrays;
+
+// Simple Process class to store details
+class Process {
+    int id;
+    int arrivalTime;
+    int burstTime;
+    int priority;
+    int waitingTime;
+    int turnaroundTime;
+    int remainingTime; // For Round Robin
+
+    // Constructor
+    Process(int id, int arrivalTime, int burstTime, int priority) {
+        this.id = id;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.priority = priority;
+        this.waitingTime = 0;
+        this.turnaroundTime = 0;
+        this.remainingTime = burstTime;
+    }
+}
+
+public class CPUScheduler {
+
+    // Formula as given: Turnaround Time = Completion Time - Arrival Time
+    public static int calculateTurnaround(int completion, int arrival) {
+        return completion - arrival;
+    }
+
+    // Formula as given: Waiting Time = Turnaround Time - Burst Time
+    public static int calculateWaiting(int turnaround, int burst) {
+        return turnaround - burst;
+    }
+
+    // Helper method to reset process values before each scheduling run
+    public static void resetProcesses(Process[] processes) {
+        for (Process p : processes) {
+            p.waitingTime = 0;
+            p.turnaroundTime = 0;
+            p.remainingTime = p.burstTime;
+        }
+    }
+
+    // FCFS Scheduling - now sorted by arrival time
+    public static void fcfsScheduling(Process[] processes) {
+        System.out.println("\n--- First Come First Serve (FCFS) ---");
+        resetProcesses(processes);
+        
+        // Sort processes by arrival time
+        Arrays.sort(processes, (a, b) -> a.arrivalTime - b.arrivalTime);
+
+        int currentTime = 0;
+        int totalWaiting = 0;
+        int totalTurnaround = 0;
+
+        for (Process p : processes) {
+            if (currentTime < p.arrivalTime) {
+                currentTime = p.arrivalTime;
+            }
+            int completionTime = currentTime + p.burstTime;
+            p.turnaroundTime = calculateTurnaround(completionTime, p.arrivalTime);
+            p.waitingTime = calculateWaiting(p.turnaroundTime, p.burstTime);
+            totalWaiting += p.waitingTime;
+            totalTurnaround += p.turnaroundTime;
+            currentTime = completionTime;
+
+            System.out.println("Process " + p.id + 
+                " | Arrival: " + p.arrivalTime + 
+                " | Burst: " + p.burstTime + 
+                " | Turnaround: " + p.turnaroundTime + 
+                " | Waiting: " + p.waitingTime);
+        }
+
+        int n = processes.length;
+        System.out.printf("Average Waiting Time: %.2f ms\n", (double) totalWaiting / n);
+        System.out.printf("Average Turnaround Time: %.2f ms\n", (double) totalTurnaround / n);
+    }
+
+    // SJF Scheduling (Non-Preemptive)
+    public static void sjfScheduling(Process[] processes) {
+        System.out.println("\n--- Shortest Job First (SJF) ---");
+        resetProcesses(processes);
+        
+        int n = processes.length;
+        boolean[] completed = new boolean[n];
+        int currentTime = 0;
+        int totalWaiting = 0;
+        int totalTurnaround = 0;
+        int count = 0;
+
+        while (count < n) {
+            int shortestIndex = -1;
+            int minBurst = Integer.MAX_VALUE;
+
+            // Find shortest available process
+            for (int i = 0; i < n; i++) {
+                if (!completed[i] && processes[i].arrivalTime <= currentTime) {
+                    if (processes[i].burstTime < minBurst) {
+                        minBurst = processes[i].burstTime;
+                        shortestIndex = i;
+                    }
+                }
+            }
+
+            if (shortestIndex == -1) {
+                currentTime++;
+                continue;
+            }
+
+            Process p = processes[shortestIndex];
+            int completionTime = currentTime + p.burstTime;
+            p.turnaroundTime = calculateTurnaround(completionTime, p.arrivalTime);
+            p.waitingTime = calculateWaiting(p.turnaroundTime, p.burstTime);
+            totalWaiting += p.waitingTime;
+            totalTurnaround += p.turnaroundTime;
+            currentTime = completionTime;
+            completed[shortestIndex] = true;
+            count++;
+
+            System.out.println("Process " + p.id + 
+                " | Arrival: " + p.arrivalTime + 
+                " | Burst: " + p.burstTime + 
+                " | Turnaround: " + p.turnaroundTime + 
+                " | Waiting: " + p.waitingTime);
+        }
+
+        System.out.printf("Average Waiting Time: %.2f ms\n", (double) totalWaiting / n);
+        System.out.printf("Average Turnaround Time: %.2f ms\n", (double) totalTurnaround / n);
+        System.out.println("Smart Advisor: SJF usually gives the lowest average waiting time!");
+    }
+
+    // Priority Scheduling (Lower number = higher priority)
+    public static void priorityScheduling(Process[] processes) {
+        System.out.println("\n--- Priority Scheduling ---");
+        resetProcesses(processes);
+        
+        int n = processes.length;
+        boolean[] completed = new boolean[n];
+        int currentTime = 0;
+        int totalWaiting = 0;
+        int totalTurnaround = 0;
+        int count = 0;
+
+        while (count < n) {
+            int highestIndex = -1;
+            int highestPriority = Integer.MAX_VALUE;
+
+            for (int i = 0; i < n; i++) {
+                if (!completed[i] && processes[i].arrivalTime <= currentTime) {
+                    if (processes[i].priority < highestPriority) {
+                        highestPriority = processes[i].priority;
+                        highestIndex = i;
+                    }
+                }
+            }
+
+            if (highestIndex == -1) {
+                currentTime++;
+                continue;
+            }
+
+            Process p = processes[highestIndex];
+            int completionTime = currentTime + p.burstTime;
+            p.turnaroundTime = calculateTurnaround(completionTime, p.arrivalTime);
+            p.waitingTime = calculateWaiting(p.turnaroundTime, p.burstTime);
+            totalWaiting += p.waitingTime;
+            totalTurnaround += p.turnaroundTime;
+            currentTime = completionTime;
+            completed[highestIndex] = true;
+            count++;
+
+            System.out.println("Process " + p.id + 
+                " | Arrival: " + p.arrivalTime + 
+                " | Burst: " + p.burstTime + 
+                " | Priority: " + p.priority + 
+                " | Turnaround: " + p.turnaroundTime + 
+                " | Waiting: " + p.waitingTime);
+        }
+
+        System.out.printf("Average Waiting Time: %.2f ms\n", (double) totalWaiting / n);
+        System.out.printf("Average Turnaround Time: %.2f ms\n", (double) totalTurnaround / n);
+    }
+
+    // Round Robin Scheduling - fixed waiting/turnaround calculation
+    public static void roundRobinScheduling(Process[] processes, int timeQuantum) {
+        System.out.println("\n--- Round Robin Scheduling ---");
+        resetProcesses(processes);
+        
+        int n = processes.length;
+        int currentTime = 0;
+        boolean done;
+
+        do {
+            done = true;
+            for (Process p : processes) {
+                if (p.remainingTime > 0 && p.arrivalTime <= currentTime) {
+                    done = false;
+                    if (p.remainingTime > timeQuantum) {
+                        currentTime += timeQuantum;
+                        p.remainingTime -= timeQuantum;
+                    } else {
+                        currentTime += p.remainingTime;
+                        p.remainingTime = 0;
+                        p.turnaroundTime = calculateTurnaround(currentTime, p.arrivalTime);
+                        p.waitingTime = calculateWaiting(p.turnaroundTime, p.burstTime);
+
+                        System.out.println("Process " + p.id + 
+                            " | Arrival: " + p.arrivalTime + 
+                            " | Burst: " + p.burstTime + 
+                            " | Turnaround: " + p.turnaroundTime + 
+                            " | Waiting: " + p.waitingTime);
+                    }
+                }
+            }
+        } while (!done);
+
+        // Recalculate totals correctly
+        int totalWaiting = 0, totalTurnaround = 0;
+        for (Process p : processes) {
+            totalWaiting += p.waitingTime;
+            totalTurnaround += p.turnaroundTime;
+        }
+
+        System.out.printf("Average Waiting Time: %.2f ms\n", (double) totalWaiting / n);
+        System.out.printf("Average Turnaround Time: %.2f ms\n", (double) totalTurnaround / n);
+    }
+
+    // Check for invalid input - updated to block zero/negative priority
+    public static boolean isValidInput(int arrival, int burst, int priority) {
+        if (arrival < 0 || burst <= 0 || priority <= 0) {
+            System.out.println("❌ Invalid! Arrival time ≥ 0, Burst time > 0, Priority > 0.");
+            return false;
+        }
+        return true;
+    }
+
+    // --- TEST CASES ---
+    public static void runTestCases() {
+        System.out.println("\n=====================================");
+        System.out.println("RUNNING TEST CASES");
+        System.out.println("=====================================");
+
+        // Normal Case: Different arrival times
+        System.out.println("\n--- TEST: Normal Case ---");
+        Process[] normalCase = {
+            new Process(1, 0, 5, 2),
+            new Process(2, 2, 3, 1),
+            new Process(3, 4, 1, 3),
+            new Process(4, 6, 4, 2)
+        };
+        sjfScheduling(normalCase);
+
+        // Edge Case 1: All arrive at time 0
+        System.out.println("\n--- TEST: All Arrive at Time 0 ---");
+        Process[] edge1 = {
+            new Process(1, 0, 7, 1),
+            new Process(2, 0, 3, 2),
+            new Process(3, 0, 5, 3)
+        };
+        sjfScheduling(edge1);
+
+        // Edge Case 2: One process arrives very late
+        System.out.println("\n--- TEST: One Process Arrives Late ---");
+        Process[] edge2 = {
+            new Process(1, 0, 4, 1),
+            new Process(2, 1, 2, 2),
+            new Process(3, 20, 3, 1)
+        };
+        sjfScheduling(edge2);
+
+        // Edge Case 3: All burst times equal
+        System.out.println("\n--- TEST: All Burst Times Equal ---");
+        Process[] edge3 = {
+            new Process(1, 0, 4, 3),
+            new Process(2, 1, 4, 1),
+            new Process(3, 2, 4, 2)
+        };
+        sjfScheduling(edge3);
+
+        // Invalid Input Test
+        System.out.println("\n--- TEST: Invalid Input ---");
+        isValidInput(-2, 5, 1);  // Negative arrival
+        isValidInput(1, -3, 2);  // Negative burst
+        isValidInput(2, 0, 1);   // Zero burst
+        isValidInput(3, 4, -1);  // Negative priority
+    }
+
+    // Main Menu
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("===== CPU SCHEDULING SIMULATOR =====");
+        System.out.println("Smart Advisor: SJF usually gives the lowest average waiting time!");
+
+        while (true) {
+            System.out.println("\nChoose an option:");
+            System.out.println("1. Run Test Cases");
+            System.out.println("2. Enter Custom Data & Simulate");
+            System.out.println("3. Exit");
+            System.out.print("Enter choice: ");
+
+            if (!sc.hasNextInt()) {
+                System.out.println("❌ Please enter a valid number!");
+                sc.next();
+                continue;
+            }
+
+            int choice = sc.nextInt();
+            if (choice == 3) break;
+
+            if (choice == 1) {
+                runTestCases();
+            } else if (choice == 2) {
+                System.out.print("\nEnter number of processes: ");
+                int n = sc.nextInt();
+                Process[] processes = new Process[n];
+
+                for (int i = 0; i < n; i++) {
+                    System.out.println("\nProcess " + (i+1) + ":");
+                    System.out.print("Arrival Time: ");
+                    int arr = sc.nextInt();
+                    System.out.print("Burst Time: ");
+                    int burst = sc.nextInt();
+                    System.out.print("Priority (lower = higher priority): ");
+                    int prio = sc.nextInt();
+
+                    if (!isValidInput(arr, burst, prio)) {
+                        i--; // retry
+                        continue;
+                    }
+                    processes[i] = new Process(i+1, arr, burst, prio);
+                }
+
+                System.out.println("\nChoose Algorithm:");
+                System.out.println("1. FCFS");
+                System.out.println("2. SJF");
+                System.out.println("3. Priority");
+                System.out.println("4. Round Robin");
+                int algo = sc.nextInt();
+
+                if (algo == 4) {
+                    System.out.print("Enter Time Quantum: ");
+                    int tq = sc.nextInt();
+                    roundRobinScheduling(processes, tq);
+                } else if (algo == 1) {
+                    fcfsScheduling(processes);
+                } else if (algo == 2) {
+                    sjfScheduling(processes);
+                } else if (algo == 3) {
+                    priorityScheduling(processes);
+                } else {
+                    System.out.println("Invalid choice!");
+                }
+            } else {
+                System.out.println("Invalid option!");
+            }
+        }
+
+        System.out.println("Program ended.");
+        sc.close();
+    }
+}
